@@ -2,7 +2,7 @@ export async function onRequestPost(context) {
   const token = context.env.GITHUB_TOKEN;
   const repo = "yourusername/yourrepo";
   const branch = "main";
-  const filePath = "public/redirect.txt";
+  const filePath = "redirect.txt";
 
   const { newUrl } = await context.request.json();
 
