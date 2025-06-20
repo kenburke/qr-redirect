@@ -1,39 +1,46 @@
 export async function onRequestPost(context) {
   const token = context.env.GITHUB_TOKEN;
-  const repo  = "your-org/your-repo";    // ← make absolutely sure this matches your GitHub repo
+  const repo  = "kenburke/qr-redirect";
   const branch= "main";
-  const filePath = context.env.BUILD_OUTPUT === "public"
-                   ? "public/redirect.txt"
-                   : "redirect.txt";
+  const filePath = "public/redirect.txt";
 
+  // Parse and sanitize incoming URL
   let { newUrl } = await context.request.json();
-  newUrl = newUrl.trim().replace(/^([^:]+)$/, 'https://$1');
-  if (!/^https?:\/\//i.test(newUrl))
-    return new Response("❌ Invalid URL after sanitization", { status: 400 });
+  newUrl = newUrl.trim();
+  if (!/^https?:\/\//i.test(newUrl)) {
+    newUrl = "https://" + newUrl;
+  }
 
-  // fetch SHA
+  // Prevent infinite loops back to this site
+  const siteOrigin = new URL(context.request.url).origin;
+  if (newUrl.startsWith(siteOrigin)) {
+    return new Response("❌ Redirect would loop to self", { status: 400 });
+  }
+
+  // 1) Fetch the current file SHA
   const shaRes = await fetch(
     `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`,
-    { headers:{ Authorization:`Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } }
   );
   if (!shaRes.ok) {
-    const err = await shaRes.text();
-    return new Response(`❌ Failed to fetch SHA: ${err}`, { status: 500 });
+    const errText = await shaRes.text();
+    return new Response(`❌ Failed to fetch SHA: ${errText}`, { status: 500 });
   }
   const { sha } = await shaRes.json();
 
-  // commit update
+  // 2) Commit the updated URL (base64-encoded)
+  const contentB64 = btoa(unescape(encodeURIComponent(newUrl)));
   const commitRes = await fetch(
     `https://api.github.com/repos/${repo}/contents/${filePath}`,
     {
       method: "PUT",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: "Update redirect via API",
-        content: btoa(newUrl),
+        message: "Update redirect.txt via API",
+        content: contentB64,
         sha,
         branch
       })
@@ -44,7 +51,7 @@ export async function onRequestPost(context) {
     return new Response(`❌ GitHub commit failed: ${JSON.stringify(commitData)}`, { status: 500 });
   }
 
-  // return the full commit response for debugging
+  // 3) Return the raw commit response for debugging
   return new Response(JSON.stringify(commitData), {
     status: 200,
     headers: { "Content-Type": "application/json" }
