@@ -1,6 +1,10 @@
 name = "qr-redirect"
 compatibility_date = "2025-06-19"
+type = "javascript"
 
-[site]
-bucket = "./public"
-entry-point = "./functions"
+[build]
+command = ""
+pages_build_output_dir = "public"
+
+[functions]
+directory = "functions"
