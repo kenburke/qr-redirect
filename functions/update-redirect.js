@@ -1,51 +1,52 @@
 export async function onRequestPost(context) {
   const token = context.env.GITHUB_TOKEN;
-  const repo = "yourusername/yourrepo";
-  const branch = "main";
-  const filePath = "redirect.txt";
+  const repo  = "your-org/your-repo";    // ← make absolutely sure this matches your GitHub repo
+  const branch= "main";
+  const filePath = context.env.BUILD_OUTPUT === "public"
+                   ? "public/redirect.txt"
+                   : "redirect.txt";
 
-  const { newUrl } = await context.request.json();
+  let { newUrl } = await context.request.json();
+  newUrl = newUrl.trim().replace(/^([^:]+)$/, 'https://$1');
+  if (!/^https?:\/\//i.test(newUrl))
+    return new Response("❌ Invalid URL after sanitization", { status: 400 });
 
-  // Basic URL sanitization
-  let cleanUrl = newUrl.trim();
-  if (!/^https?:\/\//i.test(cleanUrl)) {
-    cleanUrl = "https://" + cleanUrl;
+  // fetch SHA
+  const shaRes = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`,
+    { headers:{ Authorization:`Bearer ${token}` } }
+  );
+  if (!shaRes.ok) {
+    const err = await shaRes.text();
+    return new Response(`❌ Failed to fetch SHA: ${err}`, { status: 500 });
+  }
+  const { sha } = await shaRes.json();
+
+  // commit update
+  const commitRes = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${filePath}`,
+    {
+      method: "PUT",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        message: "Update redirect via API",
+        content: btoa(newUrl),
+        sha,
+        branch
+      })
+    }
+  );
+  const commitData = await commitRes.json();
+  if (!commitRes.ok) {
+    return new Response(`❌ GitHub commit failed: ${JSON.stringify(commitData)}`, { status: 500 });
   }
 
-  // Prevent infinite redirect loop
-  if (cleanUrl.includes(context.request.url)) {
-    return new Response("Redirect would loop to self", { status: 400 });
-  }
-
-  // Get current file SHA
-  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
-    headers: { Authorization: `Bearer ${token}` }
+  // return the full commit response for debugging
+  return new Response(JSON.stringify(commitData), {
+    status: 200,
+    headers: { "Content-Type": "application/json" }
   });
-  if (!res.ok) return new Response("Failed to fetch SHA", { status: 500 });
-  const data = await res.json();
-  const sha = data.sha;
-
-  // Commit new content
-  const payload = {
-    message: "Update redirect.txt via API",
-    content: btoa(unescape(encodeURIComponent(cleanUrl))),
-    sha,
-    branch
-  };
-
-  const updateRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!updateRes.ok) {
-    const err = await updateRes.text();
-    return new Response(`GitHub commit failed: ${err}`, { status: 500 });
-  }
-
-  return new Response("✅ Redirect updated", { status: 200 });
 }
