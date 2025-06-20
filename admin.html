@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Update Redirect URL</title>
+</head>
+<body>
+  <h1>Update redirect.txt</h1>
+  <form id="update-form">
+    <input type="url" id="url-input" placeholder="https://example.com" required>
+    <button type="submit">Update</button>
+  </form>
+  <pre id="output"></pre>
+
+  <script>
+    const GITHUB_REPO = "yourusername/yourrepo";  // ← replace this
+    const FILE_PATH = "redirect.txt";
+    const BRANCH = "main";
+    const TOKEN = "your_github_token_here"; // 🔒 WARNING: For demo only — should not be exposed client-side
+
+    async function getSha() {
+      const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}?ref=${BRANCH}`, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+      const data = await res.json();
+      return data.sha;
+    }
+
+    document.getElementById("update-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      let url = document.getElementById("url-input").value.trim();
+
+      if (!/^https?:\/\//i.test(url)) {
+        url = "https://" + url;
+      }
+
+      try {
+        const sha = await getSha();
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: "Update redirect target",
+            content: btoa(unescape(encodeURIComponent(url))),
+            sha,
+            branch: BRANCH
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById("output").textContent = "✅ Redirect updated to:\n" + url;
+      } catch (err) {
+        document.getElementById("output").textContent = "❌ Failed: " + err.message;
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
