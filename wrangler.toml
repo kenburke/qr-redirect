@@ -1,0 +1,6 @@
+name = "qr-redirect"
+compatibility_date = "2025-06-19"
+
+[site]
+bucket = "./public"
+entry-point = "./functions"
