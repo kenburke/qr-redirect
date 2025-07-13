@@ -6,29 +6,61 @@ function randomChallenge() {
   return { a, b, op };
 }
 
-export function landingPage() {
+export function landingPage(target, history) {
+  // limit to last 10 entries
+  const recent = history.slice(0, 10);
+
+  // build history rows
+  const rows = recent.map(({url, ts}) => {
+    const time = new Date(ts).toLocaleString();
+    return `<tr>
+      <td><a href="${url}" target="_blank">${url}</a></td>
+      <td>${time}</td>
+    </tr>`;
+  }).join('');
+
+  // QR Code URL
+  const qrData = encodeURIComponent(target);
+  const qrUrl  = `https://api.qrserver.com/v1/create-qr-code?size=200x200&data=${qrData}`;
+
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Admin Menu</title>
+<html lang="en"><head><meta charset="UTF-8"><title>Current Redirect</title>
 <style>
-  body{font-family:system-ui,sans-serif;background:#f9f9f9;margin:0;
-       display:flex;align-items:center;justify-content:center;height:100vh;}
-  .menu{background:white;padding:2rem;border-radius:8px;
-        box-shadow:0 2px 8px rgba(0,0,0,0.1);text-align:center;}
-  h1{margin-bottom:1rem;}
-  a.primary{display:block;margin:0.75rem 0;font-size:1.25rem;
-            color:#fff;background:#0070f3;padding:0.75rem;border-radius:4px;
-            text-decoration:none;}
-  a.secondary{display:block;margin:0.5rem 0;font-size:1rem;
-              color:#0070f3;text-decoration:none;}
-  a.primary:hover{background:#005bb5;}
-  a.secondary:hover{text-decoration:underline;}
+  body { font-family: system-ui,sans-serif; margin:0; padding:2rem; background:#f9f9f9 }
+  h1 { margin-bottom: 0.5rem; }
+  .section { background:white; padding:1rem; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.1); margin-bottom:2rem; }
+  .qr { text-align:center; margin:1rem 0; }
+  img.qr-code { width:200px; height:200px; }
+  details { margin-top:1rem; }
+  summary { font-weight:bold; cursor:pointer; }
+  table { width:100%; border-collapse:collapse; margin-top:0.5rem; }
+  th, td { border:1px solid #ddd; padding:0.5rem; text-align:left; }
+  th { background:#f0f0f0; }
 </style>
 </head><body>
-  <div class="menu">
-    <h1>Redirect Admin</h1>
-    <a href="/admin/update" class="primary">Update Redirect Link</a>
-    <a href="/admin/dash"   class="secondary">View Dashboard</a>
+
+  <div class="section">
+    <h1>Current Redirect Target</h1>
+    <p><a href="${target}" target="_blank">${target}</a></p>
+    <div class="qr">
+      <img class="qr-code" src="${qrUrl}" alt="QR Code for ${target}">
+    </div>
   </div>
+
+  <div class="section">
+    <details>
+      <summary>Show Recent History (${recent.length})</summary>
+      <table>
+        <thead>
+          <tr><th>URL</th><th>Updated At</th></tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </details>
+  </div>
+
 </body></html>`;
 }
 

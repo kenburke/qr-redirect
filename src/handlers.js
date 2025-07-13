@@ -1,10 +1,18 @@
 import * as Analytics from './analytics.js';
 import * as Templates from './templates.js';
 
-export function serveLanding() {
-  return new Response(Templates.landingPage(), {
-    headers: { 'Content-Type': 'text/html; charset=UTF-8' }
-  });
+export async function serveLanding() {
+  // fetch current target URL (or show placeholder)
+  const target = await REDIRECT_KV.get('target') || 'No redirect set';
+
+  // fetch history array (most recent first)
+  const rawHist = await REDIRECT_KV.get('history');
+  const history = rawHist ? JSON.parse(rawHist) : [];
+
+  return new Response(
+    Templates.landingPage(target, history),
+    { headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
+  );
 }
 
 export async function serveStats() {
