@@ -1,10 +1,12 @@
-name = "qr-redirect"
-compatibility_date = "2025-06-19"
-type = "javascript"
+name = "qr-redirect-worker"
+main = "src/index.js"
+compatibility_date = "2025-07-03"
 
-[build]
-command = ""
-pages_build_output_dir = "public"
+[vars]
+ADMIN_PASSWORD = "EUREKA"
+RATE_LIMIT     = "10"
+RATE_WINDOW    = "3600"
 
-[functions]
-directory = "functions"
+[[kv_namespaces]]
+binding = "REDIRECT_KV"
+id      = "78af36e9eedd423fad55186c46943aca"
