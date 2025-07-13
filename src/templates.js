@@ -23,30 +23,94 @@ export function landingPage(target, history, qrPath) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Admin</title>
 <style>
-  body { margin:0; font-family:system-ui,sans-serif; background:#f9f9f9; }
-  .container { max-width:480px; margin:2rem auto; padding:1rem; background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-  h1 { margin-top:0; font-size:1.5rem; }
-  .btn { display:block; width:100%; text-align:center; margin:0.75rem 0; padding:0.75rem; font-size:1rem; border:none; border-radius:4px; background:#0070f3; color:white; text-decoration:none; }
-  .btn.secondary { background:#555; }
-  .section { margin:1.5rem 0; text-align:center; }
-  .qr-code { max-width:200px; width:100%; height:auto; margin:0 auto; }
-  details { margin-top:1rem; text-align:left; }
-  summary { font-weight:bold; cursor:pointer; }
-  table { width:100%; border-collapse:collapse; margin-top:0.5rem; }
-  th, td { border:1px solid #ddd; padding:0.5rem; text-align:left; }
-  th { background:#f0f0f0; }
-  tr:nth-child(even) { background:#fafafa; }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #f0f2f5;
+  }
+  .container {
+    max-width: 480px;
+    margin: 2rem auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    box-sizing: border-box;
+  }
+  h1 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    font-size: 1rem;
+    text-align: center;
+    text-decoration: none;
+    color: white;
+    background: #0070f3;
+    border-radius: 4px;
+  }
+  .btn.secondary {
+    background: #555;
+  }
+  .section {
+    margin: 1.5rem 0;
+  }
+  .section h2 {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  .qr-code {
+    display: block;
+    margin: 0 auto;
+    max-width: 200px;
+    height: auto;
+  }
+  details {
+    width: 100%;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0.5rem;
+    background: #f7f7f7;
+    border-radius: 4px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    box-sizing: border-box;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: left;
+  }
+  th {
+    background: #fafafa;
+  }
+  tr:nth-child(even) {
+    background: #f9f9f9;
+  }
 </style>
 </head><body>
   <div class="container">
     <h1>Redirect Admin</h1>
 
     <a href="/admin/update" class="btn">Update Redirect</a>
-    <a href="/admin/dash"    class="btn secondary">View Dashboard</a>
+    <a href="/admin/dash" class="btn secondary">View Dashboard</a>
 
     <div class="section">
       <h2>Current Target</h2>
-      <p><a href="${target}" target="_blank">${target}</a></p>
+      <p style="text-align:center;">
+        <a href="${target}" target="_blank">${target}</a>
+      </p>
       <img src="${qrPath}" alt="QR Code" class="qr-code"/>
     </div>
 
