@@ -165,20 +165,40 @@ export function dashboardPage(all) {
     padding: 2rem;
   }
   h1 { margin-bottom: 1rem; }
-  a {
-    color: #0070f3;
-    text-decoration: none;
-    margin-right: 1rem;
+  /* export buttons */
+  .export-links {
+    margin-bottom: 2rem;
   }
-  a:hover { text-decoration: underline; }
-  canvas { max-width: 800px; margin-bottom: 2rem; }
+  .export-links button {
+    margin-right: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: #4dc0b5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .export-links button:hover {
+    background: #3aa79c;
+  }
+  /* cards around charts/tables */
+  .card {
+    background: white;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .card h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  canvas { width: 100% !important; height: auto !important; }
   table {
     width: 100%;
-    max-width: 800px;
     border-collapse: collapse;
-    background: white;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
   }
   th, td {
     border: 1px solid #ddd;
@@ -191,28 +211,35 @@ export function dashboardPage(all) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head><body>
   <h1>Redirect Dashboard</h1>
-  <div>
-    <a href="/admin">← Admin Menu</a>
-    <a href="/admin/export/analytics.csv" download>Export Analytics CSV</a>
-    <a href="/admin/export/history.csv"   download>Export History CSV</a>
+  <div class="export-links">
+    <button onclick="location.href='/admin/export/analytics.csv'">Export Analytics CSV</button>
+    <button onclick="location.href='/admin/export/history.csv'">Export History CSV</button>
+    <button onclick="location.href='/admin'">← Admin Menu</button>
   </div>
 
-  <canvas id="redirectChart" height="100"></canvas>
-  <canvas id="attemptChart"  height="100"></canvas>
+  <div class="card">
+    <h2>Total Redirects Over Time</h2>
+    <canvas id="redirectChart"></canvas>
+  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Success</th>
-        <th>Failures</th>
-        <th>Redirects</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows}
-    </tbody>
-  </table>
+  <div class="card">
+    <h2>Attempts (Success vs. Failures)</h2>
+    <canvas id="attemptChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Daily Summary</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th><th>Success</th><th>Failures</th><th>Redirects</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  </div>
 
   <script>
     const stats = ${statsJson};
@@ -224,7 +251,6 @@ export function dashboardPage(all) {
     const pwdData      = labels.map(d => stats[d].failure.password || 0);
     const rlData       = labels.map(d => stats[d].failure.rateLimit || 0);
 
-    // 1) Redirects stepped bar
     new Chart(
       document.getElementById('redirectChart').getContext('2d'),
       {
@@ -245,16 +271,11 @@ export function dashboardPage(all) {
             y: { beginAtZero: true },
             x: { title: { display: true, text: 'Date' } }
           },
-          elements: {
-            bar: {
-              borderSkipped: false
-            }
-          }
+          elements: { bar: { borderSkipped: false } }
         }
       }
     );
 
-    // 2) Stacked stepped bar for Failures + Successes
     new Chart(
       document.getElementById('attemptChart').getContext('2d'),
       {
@@ -301,11 +322,7 @@ export function dashboardPage(all) {
             y: { beginAtZero: true, stacked: true },
             x: { title: { display: true, text: 'Date' } }
           },
-          elements: {
-            bar: {
-              borderSkipped: false
-            }
-          }
+          elements: { bar: { borderSkipped: false } }
         }
       }
     );
