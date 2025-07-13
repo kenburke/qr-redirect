@@ -6,61 +6,64 @@ function randomChallenge() {
   return { a, b, op };
 }
 
-export function landingPage(target, history) {
+export function landingPage(target, history, qrPath) {
   // limit to last 10 entries
   const recent = history.slice(0, 10);
 
   // build history rows
   const rows = recent.map(({url, ts}) => {
     const time = new Date(ts).toLocaleString();
-    return `<tr>
-      <td><a href="${url}" target="_blank">${url}</a></td>
-      <td>${time}</td>
-    </tr>`;
+    return `
+      <tr>
+        <td><a href="${url}" target="_blank">${url}</a></td>
+        <td>${time}</td>
+      </tr>`;
   }).join('');
 
-  // QR Code URL
-  const qrData = encodeURIComponent(target);
-  const qrUrl  = `https://api.qrserver.com/v1/create-qr-code?size=200x200&data=${qrData}`;
-
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Current Redirect</title>
+<html lang="en"><head><meta charset="UTF-8"><title>Redirect Admin</title>
 <style>
-  body { font-family: system-ui,sans-serif; margin:0; padding:2rem; background:#f9f9f9 }
-  h1 { margin-bottom: 0.5rem; }
-  .section { background:white; padding:1rem; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.1); margin-bottom:2rem; }
-  .qr { text-align:center; margin:1rem 0; }
-  img.qr-code { width:200px; height:200px; }
-  details { margin-top:1rem; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f9f9f9; }
+  .container { max-width:480px; margin:2rem auto; padding:1rem; background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+  h1 { margin-top:0; font-size:1.5rem; }
+  .btn { display:block; width:100%; text-align:center; margin:0.75rem 0; padding:0.75rem; font-size:1rem; border:none; border-radius:4px; background:#0070f3; color:white; text-decoration:none; }
+  .btn.secondary { background:#555; }
+  .section { margin:1.5rem 0; text-align:center; }
+  .qr-code { max-width:200px; width:100%; height:auto; margin:0 auto; }
+  details { margin-top:1rem; text-align:left; }
   summary { font-weight:bold; cursor:pointer; }
   table { width:100%; border-collapse:collapse; margin-top:0.5rem; }
   th, td { border:1px solid #ddd; padding:0.5rem; text-align:left; }
   th { background:#f0f0f0; }
+  tr:nth-child(even) { background:#fafafa; }
 </style>
 </head><body>
+  <div class="container">
+    <h1>Redirect Admin</h1>
 
-  <div class="section">
-    <h1>Current Redirect Target</h1>
-    <p><a href="${target}" target="_blank">${target}</a></p>
-    <div class="qr">
-      <img class="qr-code" src="${qrUrl}" alt="QR Code for ${target}">
+    <a href="/admin/update" class="btn">Update Redirect</a>
+    <a href="/admin/dash"    class="btn secondary">View Dashboard</a>
+
+    <div class="section">
+      <h2>Current Target</h2>
+      <p><a href="${target}" target="_blank">${target}</a></p>
+      <img src="${qrPath}" alt="QR Code" class="qr-code"/>
+    </div>
+
+    <div class="section">
+      <details>
+        <summary>Show Recent History (${recent.length})</summary>
+        <table>
+          <thead>
+            <tr><th>URL</th><th>Updated At</th></tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </details>
     </div>
   </div>
-
-  <div class="section">
-    <details>
-      <summary>Show Recent History (${recent.length})</summary>
-      <table>
-        <thead>
-          <tr><th>URL</th><th>Updated At</th></tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    </details>
-  </div>
-
 </body></html>`;
 }
 

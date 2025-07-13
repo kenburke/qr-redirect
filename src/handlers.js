@@ -2,15 +2,19 @@ import * as Analytics from './analytics.js';
 import * as Templates from './templates.js';
 
 export async function serveLanding() {
-  // fetch current target URL (or show placeholder)
+  // 1) fetch the current redirect target
   const target = await REDIRECT_KV.get('target') || 'No redirect set';
 
-  // fetch history array (most recent first)
+  // 2) fetch recent history
   const rawHist = await REDIRECT_KV.get('history');
   const history = rawHist ? JSON.parse(rawHist) : [];
 
+  // 3) point to the raw GitHub URL for your qr.png
+  const qrUrl = 'https://raw.githubusercontent.com/kenburke/qr-redirect/main/qr.png';
+
+  // 4) render the template with target, history, and qrUrl
   return new Response(
-    Templates.landingPage(target, history),
+    Templates.landingPage(target, history, qrUrl),
     { headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
   );
 }
