@@ -75,24 +75,40 @@ export function updateForm() {
     const f   = document.getElementById("f");
     const msg = document.getElementById("msg");
     const ch  = document.getElementById("challenge");
-    f.addEventListener("submit", async e=>{
+    f.addEventListener("submit", async e => {
       e.preventDefault();
-      msg.textContent="Updating…"; msg.classList.remove("error");
-      const res  = await fetch("/admin/update",{ method:"POST", body:new FormData(f) });
-      const json = await res.json();
-      if(!json.success){
-        msg.textContent=json.message; msg.classList.add("error");
+      msg.textContent = "Updating…";
+      msg.classList.remove("error");
+
+      // 1) Submit
+      const res = await fetch("/admin/update", {
+        method: "POST",
+        body: new FormData(f)
+      });
+      const txt = await res.text();
+
+      // 2) Display result
+      if (!res.ok) {
+        msg.textContent = txt;
+        msg.classList.add("error");
       } else {
-        msg.textContent=json.message;
+        msg.textContent = txt;
       }
-      const next = json.nextCaptcha;
+
+      // 3) Reset password (so they have to retype)
+      f.querySelector("input[name=password]").value = "";
+
+      // 4) New CAPTCHA
+      const { a, b, op } = randomChallenge();
       ch.innerHTML =
         '<strong>Prove you are human!</strong><br>' +
-        '<strong>Solve: '+next.a+' '+next.op+' '+next.b+' =</strong>' +
+        '<strong>Solve: ' + a + ' ' + op + ' ' + b + ' =</strong>' +
         '<input type="number" name="captcha" required style="width:4rem"/>';
-      f.querySelector("input[name=a]").value  = next.a;
-      f.querySelector("input[name=b]").value  = next.b;
-      f.querySelector("input[name=op]").value = next.op;
+
+      // 5) Store hidden inputs
+      f.querySelector("input[name=a]").value  = a;
+      f.querySelector("input[name=b]").value  = b;
+      f.querySelector("input[name=op]").value = op;
     });
 
     function randomChallenge(){
