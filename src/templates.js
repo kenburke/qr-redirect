@@ -27,7 +27,6 @@ export function landingPage() {
   <div class="menu">
     <h1>Redirect Admin</h1>
     <a href="/admin/update" class="primary">Update Redirect Link</a>
-    <a href="/admin/stats"  class="secondary" target="_blank">View Raw Stats (JSON)</a>
     <a href="/admin/dash"   class="secondary">View Dashboard</a>
   </div>
 </body></html>`;
@@ -123,7 +122,7 @@ export function updateForm() {
 }
 
 export function dashboardPage(all) {
-  // inject dummy June 19th if missing
+  // Inject dummy June 19th if missing
   if (!all["2025-06-19"]) {
     all["2025-06-19"] = {
       success:   2,
@@ -131,13 +130,14 @@ export function dashboardPage(all) {
       failure: { captcha:1, password:1, rateLimit:1 }
     };
   }
-  // sort & cap to last 1,000 dates
+
+  // Sort & cap to last 1,000 dates
   let dates = Object.keys(all).sort();
   if (dates.length > 1000) dates = dates.slice(-1000);
   const stats = {};
   for (const d of dates) stats[d] = all[d];
 
-  // build table rows (newest first)
+  // Build table rows (newest first)
   let rows = "";
   for (const d of dates.slice().reverse()) {
     const { success=0, redirects=0, failure } = stats[d];
@@ -159,30 +159,51 @@ export function dashboardPage(all) {
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Dashboard</title>
 <style>
   body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #f9f9f9;
     margin: 0;
-    padding: 2rem;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
   }
-  h1 { margin-bottom: 1rem; }
-  /* export buttons */
-  .export-links {
-    margin-bottom: 2rem;
+  /* Sidebar */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 180px;
+    background: #f0f0f0;
+    padding: 1rem;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
   }
-  .export-links button {
-    margin-right: 0.75rem;
+  .sidebar .top, .sidebar .bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .sidebar .spacer {
+    flex: 1;
+  }
+  .sidebar button {
     padding: 0.5rem 1rem;
-    background: #4dc0b5;
-    color: white;
+    background: #ccc;
     border: none;
     border-radius: 4px;
     font-size: 0.95rem;
     cursor: pointer;
+    text-align: left;
   }
-  .export-links button:hover {
-    background: #3aa79c;
+  .sidebar button:hover {
+    background: #bbb;
   }
-  /* cards around charts/tables */
+  /* Main content shifted right of sidebar */
+  .content {
+    margin-left: 200px;
+    padding: 2rem;
+    width: calc(100% - 200px);
+    background: #f9f9f9;
+    box-sizing: border-box;
+    min-height: 100vh;
+  }
+  h1 { margin-top: 0; }
   .card {
     background: white;
     padding: 1rem;
@@ -210,35 +231,43 @@ export function dashboardPage(all) {
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head><body>
-  <h1>Redirect Dashboard</h1>
-  <div class="export-links">
-    <button onclick="location.href='/admin/export/analytics.csv'">Export Analytics CSV</button>
-    <button onclick="location.href='/admin/export/history.csv'">Export History CSV</button>
-    <button onclick="location.href='/admin'">← Admin Menu</button>
+
+  <div class="sidebar">
+    <div class="top">
+      <button onclick="location.href='/admin/export/analytics.csv'">Export Analytics CSV</button>
+      <button onclick="location.href='/admin/export/history.csv'">Export History CSV</button>
+      <button onclick="location.href='/admin/stats'">View Raw Stats (JSON)</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="bottom">
+      <button onclick="location.href='/admin'">← Admin Menu</button>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Total Redirects Over Time</h2>
-    <canvas id="redirectChart"></canvas>
-  </div>
+  <div class="content">
+    <h1>Redirect Dashboard</h1>
 
-  <div class="card">
-    <h2>Attempts (Success vs. Failures)</h2>
-    <canvas id="attemptChart"></canvas>
-  </div>
+    <div class="card">
+      <h2>Total Redirects Over Time</h2>
+      <canvas id="redirectChart"></canvas>
+    </div>
 
-  <div class="card">
-    <h2>Daily Summary</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th><th>Success</th><th>Failures</th><th>Redirects</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
+    <div class="card">
+      <h2>Attempts (Success vs. Failures)</h2>
+      <canvas id="attemptChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Daily Summary</h2>
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Success</th><th>Failures</th><th>Redirects</th></tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -267,10 +296,7 @@ export function dashboardPage(all) {
           }]
         },
         options: {
-          scales: {
-            y: { beginAtZero: true },
-            x: { title: { display: true, text: 'Date' } }
-          },
+          scales: { y: { beginAtZero: true }, x: { title: { display: true, text: 'Date' } } },
           elements: { bar: { borderSkipped: false } }
         }
       }
@@ -283,45 +309,14 @@ export function dashboardPage(all) {
         data: {
           labels,
           datasets: [
-            {
-              label: 'CAPTCHA Failures',
-              data: captchaData,
-              backgroundColor: 'rgba(255,99,132,0.6)',
-              borderColor: 'rgba(255,99,132,1)',
-              stack: 'stack1',
-              barPercentage: 0.8
-            },
-            {
-              label: 'Password Failures',
-              data: pwdData,
-              backgroundColor: 'rgba(255,59,48,0.6)',
-              borderColor: 'rgba(255,59,48,1)',
-              stack: 'stack1',
-              barPercentage: 0.8
-            },
-            {
-              label: 'RateLimit Failures',
-              data: rlData,
-              backgroundColor: 'rgba(200,50,50,0.6)',
-              borderColor: 'rgba(200,50,50,1)',
-              stack: 'stack1',
-              barPercentage: 0.8
-            },
-            {
-              label: 'Successes',
-              data: successData,
-              backgroundColor: 'rgba(40,180,99,0.6)',
-              borderColor: 'rgba(40,180,99,1)',
-              stack: 'stack1',
-              barPercentage: 0.8
-            }
+            { label: 'CAPTCHA Failures', data: captchaData, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', stack: 'stack1', barPercentage: 0.8 },
+            { label: 'Password Failures', data: pwdData, backgroundColor: 'rgba(255,59,48,0.6)', borderColor: 'rgba(255,59,48,1)', stack: 'stack1', barPercentage: 0.8 },
+            { label: 'RateLimit Failures', data: rlData, backgroundColor: 'rgba(200,50,50,0.6)', borderColor: 'rgba(200,50,50,1)', stack: 'stack1', barPercentage: 0.8 },
+            { label: 'Successes', data: successData, backgroundColor: 'rgba(40,180,99,0.6)', borderColor: 'rgba(40,180,99,1)', stack: 'stack1', barPercentage: 0.8 }
           ]
         },
         options: {
-          scales: {
-            y: { beginAtZero: true, stacked: true },
-            x: { title: { display: true, text: 'Date' } }
-          },
+          scales: { y: { beginAtZero: true, stacked: true }, x: { title: { display: true, text: 'Date' } } },
           elements: { bar: { borderSkipped: false } }
         }
       }
