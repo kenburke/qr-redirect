@@ -23,6 +23,9 @@ export function landingPage(target, history, qrPath) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Admin</title>
 <style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
   body {
     margin: 0;
     font-family: system-ui, sans-serif;
@@ -35,7 +38,6 @@ export function landingPage(target, history, qrPath) {
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     padding: 1.5rem;
-    box-sizing: border-box;
   }
   h1 {
     margin-top: 0;
@@ -48,22 +50,22 @@ export function landingPage(target, history, qrPath) {
     padding: 0.75rem;
     margin: 0.75rem 0;
     font-size: 1rem;
-    text-align: center;
-    text-decoration: none;
     color: white;
     background: #0070f3;
+    text-decoration: none;
     border-radius: 4px;
+    text-align: center;
   }
   .btn.secondary {
     background: #555;
   }
   .section {
     margin: 1.5rem 0;
+    text-align: center;
   }
   .section h2 {
     margin-bottom: 0.75rem;
     font-size: 1.1rem;
-    text-align: center;
   }
   .qr-code {
     display: block;
@@ -73,18 +75,26 @@ export function landingPage(target, history, qrPath) {
   }
   details {
     width: 100%;
+    margin-top: 1rem;
   }
   summary {
-    cursor: pointer;
-    font-weight: bold;
     padding: 0.5rem;
     background: #f7f7f7;
     border-radius: 4px;
+    cursor: pointer;
+    list-style: none;
+  }
+  /* hide default triangle */
+  summary::-webkit-details-marker { display: none; }
+  table-wrapper {
+    display: block;
+    overflow-x: auto;
+    margin-top: 0.5rem;
   }
   table {
     width: 100%;
+    min-width: 400px;
     border-collapse: collapse;
-    margin-top: 0.5rem;
     box-sizing: border-box;
   }
   th, td {
@@ -94,6 +104,8 @@ export function landingPage(target, history, qrPath) {
   }
   th {
     background: #fafafa;
+    position: sticky;
+    top: 0;
   }
   tr:nth-child(even) {
     background: #f9f9f9;
@@ -108,23 +120,23 @@ export function landingPage(target, history, qrPath) {
 
     <div class="section">
       <h2>Current Target</h2>
-      <p style="text-align:center;">
-        <a href="${target}" target="_blank">${target}</a>
-      </p>
+      <p><a href="${target}" target="_blank">${target}</a></p>
       <img src="${qrPath}" alt="QR Code" class="qr-code"/>
     </div>
 
     <div class="section">
       <details>
         <summary>Show Recent History (${recent.length})</summary>
-        <table>
-          <thead>
-            <tr><th>URL</th><th>Updated At</th></tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
+        <div style="overflow-x:auto; margin-top:0.5rem;">
+          <table>
+            <thead>
+              <tr><th>URL</th><th>Updated At</th></tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
       </details>
     </div>
   </div>
