@@ -121,3 +121,49 @@ export function updateForm() {
   </script>
 </body></html>`;
 }
+
+export function dashboardPage(all) {
+  // inject dummy June 19th
+  if (!all["2025-06-19"]) {
+    all["2025-06-19"] = {
+      success:   2,
+      redirects: 107,
+      failure: { captcha:1, password:1, rateLimit:1 }
+    };
+  }
+  // sort & cap to 1000 dates
+  let dates = Object.keys(all).sort();
+  if (dates.length > 1000) dates = dates.slice(-1000);
+  const stats = {};
+  for (const d of dates) stats[d] = all[d];
+
+  // build rows (newest first)
+  let rows = "";
+  for (const d of dates.slice().reverse()) {
+    const { success=0, redirects=0, failure } = stats[d];
+    const totalFail = (failure.captcha||0)
+                    + (failure.password||0)
+                    + (failure.rateLimit||0);
+    rows += `
+      <tr>
+        <td>${d}</td>
+        <td>${success}</td>
+        <td>${totalFail}</td>
+        <td>${redirects}</td>
+      </tr>`;
+  }
+
+  // now render the full HTML (same as before, with your <canvas> and <table> etc.)
+  return `<!DOCTYPE html>
+  <html lang="en"><head>…</head><body>
+    <h1>Redirect Dashboard</h1>
+    <a href="/admin">← Admin Menu</a>
+    <canvas id="redirectChart"></canvas>
+    <canvas id="attemptChart"></canvas>
+    <table>…${rows}…</table>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // your chart-building code here, using JSON.stringify(stats)
+    </script>
+  </body></html>`;
+}
