@@ -1,3 +1,5 @@
+import { formatPacific } from './dates.js';
+
 const ALERT_TO = 'kennethjburkejr@gmail.com';
 const ADMIN_URL = 'https://qr-redirect-worker.kennethjburkejr.workers.dev/admin';
 
@@ -27,7 +29,7 @@ function humanMessage(run) {
 export async function sendFailureEmail(run) {
   const subject = '⚠️ QR Redirect auto-update needs attention';
   const triggeredBy = run.trigger === 'cron' ? 'the daily automatic check' : 'a manual sync';
-  const ranAt = new Date(run.ranAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  const ranAt = formatPacific(run.ranAt);
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">

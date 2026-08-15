@@ -1,3 +1,5 @@
+import { formatPacific } from './dates.js';
+
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -18,7 +20,7 @@ export function landingPage(target, history, qrPath, lastRun) {
 
   // build history rows
   const rows = recent.map(({url, ts, source}) => {
-    const time = new Date(ts).toLocaleString();
+    const time = formatPacific(ts);
     const tag = source === 'auto' ? ' <span style="color:#888;font-size:0.85em;">(auto)</span>' : '';
     return `
       <tr>
@@ -30,7 +32,7 @@ export function landingPage(target, history, qrPath, lastRun) {
   const banner = (lastRun && !lastRun.success) ? `
     <div class="banner">
       ⚠ Auto-update issue: ${escapeHtml(lastRun.error || 'unknown error')}<br>
-      Last attempt: ${new Date(lastRun.ranAt).toLocaleString()}
+      Last attempt: ${formatPacific(lastRun.ranAt)}
     </div>` : '';
 
   return `<!DOCTYPE html>
@@ -353,7 +355,7 @@ export function dashboardPage(all, runs = []) {
   const lastRun = runs[0];
   const lastRunSummary = lastRun ? `
     <p>
-      Last run: ${new Date(lastRun.ranAt).toLocaleString()} (${lastRun.trigger})<br>
+      Last run: ${formatPacific(lastRun.ranAt)} (${lastRun.trigger})<br>
       Status: ${lastRun.success ? '✅ OK' : '❌ ' + escapeHtml(lastRun.error || 'error')}<br>
       Next Saturday (${lastRun.nextCalendarSaturday}): ${lastRun.nextCalendarSaturdayCached ? '✅ cached' : '⚠ not cached yet'}
     </p>` : '<p>No auto-update runs yet.</p>';
@@ -362,7 +364,7 @@ export function dashboardPage(all, runs = []) {
   for (const r of runs) {
     scrapeRunRows += `
       <tr>
-        <td>${new Date(r.ranAt).toLocaleString()}</td>
+        <td>${formatPacific(r.ranAt)}</td>
         <td>${r.trigger}</td>
         <td>${r.success ? '✅' : '❌ ' + escapeHtml(r.error || '')}</td>
         <td>${r.entriesFound}</td>
