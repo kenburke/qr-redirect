@@ -74,6 +74,35 @@ export function landingPage(target, history, qrPath, lastRun) {
   .btn.secondary {
     background: #555;
   }
+  #syncBtn {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2196f3, #0070f3);
+    color: white;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,112,243,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  #syncBtn:hover:not(:disabled) {
+    transform: scale(1.08) rotate(45deg);
+    box-shadow: 0 3px 8px rgba(0,112,243,0.5);
+  }
+  #syncBtn:active:not(:disabled) {
+    transform: scale(0.94) rotate(45deg);
+  }
+  #syncBtn:disabled {
+    opacity: 0.55;
+    cursor: default;
+    box-shadow: none;
+  }
   .banner {
     background: #fdecea;
     color: #c92a2a;
@@ -165,21 +194,23 @@ export function landingPage(target, history, qrPath, lastRun) {
       </details>
     </div>
 
-    <div class="section">
-      <h2>Auto-Update</h2>
-      <div style="display:flex;gap:0.5rem;align-items:center;">
+    <div class="section" style="text-align:left;">
+      <form id="syncForm" style="display:flex;gap:0.5rem;align-items:center;margin:0;">
+        <h2 style="margin:0;font-size:1.1rem;white-space:nowrap;">Auto-Update</h2>
         <input type="password" id="syncPw" placeholder="Admin password" style="flex:1;min-width:0;padding:0.5rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;"/>
-        <button id="syncBtn" title="Sync Now" style="flex:0 0 auto;width:2.25rem;height:2.25rem;border:none;border-radius:4px;background:#555;color:white;cursor:pointer;font-size:1.1rem;line-height:1;">⟳</button>
-      </div>
+        <button type="submit" id="syncBtn" title="Sync Now">⟳</button>
+      </form>
       <div id="syncMsg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
     </div>
   </div>
   <script>
-    const syncBtn = document.getElementById('syncBtn');
-    const syncPw  = document.getElementById('syncPw');
-    const syncMsg = document.getElementById('syncMsg');
+    const syncForm = document.getElementById('syncForm');
+    const syncBtn  = document.getElementById('syncBtn');
+    const syncPw   = document.getElementById('syncPw');
+    const syncMsg  = document.getElementById('syncMsg');
 
-    syncBtn.addEventListener('click', async () => {
+    syncForm.addEventListener('submit', async e => {
+      e.preventDefault();
       syncBtn.disabled = true;
       syncMsg.textContent = 'Starting…';
       let res;
