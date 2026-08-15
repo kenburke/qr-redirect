@@ -165,7 +165,7 @@ export function updateForm() {
   <div class="box">
     <h1>Update Redirect</h1>
     <form id="f">
-      <input type="url"     name="url"      placeholder="https://example.com" required/>
+      <input type="url"     name="url"      placeholder="https://example.com" autocomplete="off" required/>
       <input type="password" name="password" placeholder="Admin password" required/>
       <label id="challenge">
         <strong>Prove you are human!</strong><br>
@@ -187,6 +187,13 @@ export function updateForm() {
     const ch  = document.getElementById("challenge");
     f.addEventListener("submit", async e => {
       e.preventDefault();
+
+      // 0) Confirm the exact URL before sending — catches autofill/paste mistakes
+      const urlValue = f.querySelector("input[name=url]").value;
+      if (!confirm("Set redirect to:\n\n" + urlValue + "\n\nContinue?")) {
+        return;
+      }
+
       msg.textContent = "Updating…";
       msg.classList.remove("error");
 

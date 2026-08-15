@@ -99,7 +99,7 @@ export async function handleUpdate(request) {
   // Analytics success
   await Analytics.updateAnalytics('success');
 
-  return new Response('✅ Redirect updated', { status: 200 });
+  return new Response(`✅ Redirect updated to: ${newUrl}`, { status: 200 });
 }
 
 export async function handleRedirect() {
