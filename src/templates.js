@@ -35,6 +35,18 @@ export function landingPage(target, history, qrPath, lastRun) {
       Last attempt: ${formatPacific(lastRun.ranAt)}
     </div>` : '';
 
+  let autoStatusText = 'No syncs yet';
+  let autoStatusColor = '#999';
+  if (lastRun) {
+    if (lastRun.success && lastRun.nextCalendarSaturdayCached) {
+      autoStatusText = `Synced ${formatPacific(lastRun.ranAt)}`;
+      autoStatusColor = '#2f9e44';
+    } else {
+      autoStatusText = 'Needs attention';
+      autoStatusColor = '#c92a2a';
+    }
+  }
+
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Admin</title>
 <style>
@@ -47,28 +59,29 @@ export function landingPage(target, history, qrPath, lastRun) {
     background: #f0f2f5;
   }
   .container {
-    max-width: 480px;
+    max-width: 440px;
     margin: 2rem auto;
     background: white;
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
   h1 {
-    margin-top: 0;
-    font-size: 1.5rem;
+    margin: 0 0 1rem;
+    font-size: 1.3rem;
     text-align: center;
   }
   .btn {
     display: block;
-    width: 100%;
-    padding: 0.75rem;
-    margin: 0.75rem 0;
-    font-size: 1rem;
+    flex: 1;
+    padding: 0.6rem;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
     color: white;
     background: #0070f3;
     text-decoration: none;
-    border-radius: 4px;
+    border-radius: 6px;
     text-align: center;
   }
   .btn.secondary {
@@ -122,30 +135,40 @@ export function landingPage(target, history, qrPath, lastRun) {
     margin-bottom: 1rem;
     font-size: 0.9rem;
   }
-  .section {
-    margin: 1.5rem 0;
-    text-align: center;
-  }
-  .section h2 {
+  .card {
+    background: #fafbfc;
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
     margin-bottom: 0.75rem;
-    font-size: 1.1rem;
+  }
+  .card h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+  }
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
   }
   .qr-code {
     display: block;
     margin: 0 auto;
-    max-width: 200px;
+    max-width: 180px;
     height: auto;
   }
   details {
     width: 100%;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
   }
   summary {
-    padding: 0.5rem;
-    background: #f7f7f7;
-    border-radius: 4px;
+    padding: 0.4rem 0;
     cursor: pointer;
     list-style: none;
+    font-size: 0.85rem;
+    color: #666;
   }
   /* hide default triangle */
   summary::-webkit-details-marker { display: none; }
@@ -179,35 +202,13 @@ export function landingPage(target, history, qrPath, lastRun) {
     <h1>Redirect Admin</h1>
     ${banner}
 
-    <a href="/admin/update" class="btn">Update Redirect</a>
-    <a href="/admin/dash" class="btn secondary">View Dashboard</a>
-
-    <div class="section">
-      <h2>Current Target</h2>
-      <p style="word-break:break-all;"><a href="${target}" target="_blank">${target}</a></p>
-      <img src="${qrPath}" alt="QR Code" class="qr-code"/>
-    </div>
-
-    <div class="section">
-      <details>
-        <summary>Show Recent History (${recent.length})</summary>
-        <div style="overflow-x:auto; margin-top:0.5rem;">
-          <table>
-            <thead>
-              <tr><th>URL</th><th>Updated At</th></tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        </div>
-      </details>
-    </div>
-
-    <div class="section" style="text-align:left;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.6rem;">
+        <h2>Auto-Update</h2>
+        <span style="font-size:0.75rem;color:${autoStatusColor};">● ${escapeHtml(autoStatusText)}</span>
+      </div>
       <form id="syncForm" style="display:flex;gap:0.5rem;align-items:center;margin:0;">
-        <h2 style="margin:0;font-size:1.1rem;white-space:nowrap;">Auto-Update</h2>
-        <input type="password" id="syncPw" placeholder="Admin password" style="flex:1;min-width:0;padding:0.5rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;"/>
+        <input type="password" id="syncPw" placeholder="Admin password" style="flex:1;min-width:0;padding:0.5rem;font-size:0.9rem;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;"/>
         <button type="submit" id="syncBtn" title="Sync Now">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
@@ -216,8 +217,35 @@ export function landingPage(target, history, qrPath, lastRun) {
           </svg>
         </button>
       </form>
-      <div id="syncMsg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
+      <div id="syncMsg" style="margin-top:0.5rem;font-size:0.82rem;color:#666;"></div>
     </div>
+
+    <div class="card" style="text-align:center;">
+      <h2 style="text-align:left;margin-bottom:0.75rem;">Current Target</h2>
+      <img src="${qrPath}" alt="QR Code" class="qr-code"/>
+      <p style="word-break:break-all;font-size:0.82rem;margin:0.6rem 0 0;">
+        <a href="${target}" target="_blank" style="color:#0070f3;text-decoration:none;">${target}</a>
+      </p>
+    </div>
+
+    <div class="actions">
+      <a href="/admin/update" class="btn">Update Redirect</a>
+      <a href="/admin/dash" class="btn secondary">Dashboard</a>
+    </div>
+
+    <details>
+      <summary>Recent history (${recent.length})</summary>
+      <div style="overflow-x:auto; margin-top:0.5rem;">
+        <table>
+          <thead>
+            <tr><th>URL</th><th>Updated At</th></tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    </details>
   </div>
   <script>
     const syncForm = document.getElementById('syncForm');
