@@ -91,17 +91,27 @@ export function landingPage(target, history, qrPath, lastRun) {
     box-shadow: 0 2px 5px rgba(0,112,243,0.4);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
+  #syncBtn svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
   #syncBtn:hover:not(:disabled) {
-    transform: scale(1.08) rotate(45deg);
+    transform: scale(1.08);
     box-shadow: 0 3px 8px rgba(0,112,243,0.5);
   }
   #syncBtn:active:not(:disabled) {
-    transform: scale(0.94) rotate(45deg);
+    transform: scale(0.94);
   }
   #syncBtn:disabled {
     opacity: 0.55;
     cursor: default;
     box-shadow: none;
+  }
+  #syncBtn.spinning svg {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
   .banner {
     background: #fdecea;
@@ -174,7 +184,7 @@ export function landingPage(target, history, qrPath, lastRun) {
 
     <div class="section">
       <h2>Current Target</h2>
-      <p><a href="${target}" target="_blank">${target}</a></p>
+      <p style="word-break:break-all;"><a href="${target}" target="_blank">${target}</a></p>
       <img src="${qrPath}" alt="QR Code" class="qr-code"/>
     </div>
 
@@ -198,7 +208,13 @@ export function landingPage(target, history, qrPath, lastRun) {
       <form id="syncForm" style="display:flex;gap:0.5rem;align-items:center;margin:0;">
         <h2 style="margin:0;font-size:1.1rem;white-space:nowrap;">Auto-Update</h2>
         <input type="password" id="syncPw" placeholder="Admin password" style="flex:1;min-width:0;padding:0.5rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;"/>
-        <button type="submit" id="syncBtn" title="Sync Now">⟳</button>
+        <button type="submit" id="syncBtn" title="Sync Now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
       </form>
       <div id="syncMsg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
     </div>
@@ -212,6 +228,7 @@ export function landingPage(target, history, qrPath, lastRun) {
     syncForm.addEventListener('submit', async e => {
       e.preventDefault();
       syncBtn.disabled = true;
+      syncBtn.classList.add('spinning');
       syncMsg.textContent = 'Starting…';
       let res;
       try {
@@ -222,16 +239,19 @@ export function landingPage(target, history, qrPath, lastRun) {
       } catch (e) {
         syncMsg.textContent = '❌ Request failed';
         syncBtn.disabled = false;
+        syncBtn.classList.remove('spinning');
         return;
       }
       if (res.status === 401) {
         syncMsg.textContent = '❌ Invalid password';
         syncBtn.disabled = false;
+        syncBtn.classList.remove('spinning');
         return;
       }
       if (!res.ok) {
         syncMsg.textContent = '❌ Failed to start sync';
         syncBtn.disabled = false;
+        syncBtn.classList.remove('spinning');
         return;
       }
       poll();
@@ -246,6 +266,7 @@ export function landingPage(target, history, qrPath, lastRun) {
         } else {
           clearInterval(interval);
           syncBtn.disabled = false;
+          syncBtn.classList.remove('spinning');
           syncMsg.textContent = '✅ Done — see the dashboard for details';
         }
       }, 1000);
