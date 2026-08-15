@@ -158,6 +158,29 @@ export function landingPage(target, history, qrPath, lastRun) {
     margin: 0 auto;
     max-width: 180px;
     height: auto;
+    cursor: zoom-in;
+  }
+  #qrOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    padding: 5vw;
+  }
+  #qrOverlay.open {
+    display: flex;
+  }
+  #qrOverlay img {
+    width: min(90vw, 90vh);
+    height: min(90vw, 90vh);
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
   }
   details {
     width: 100%;
@@ -222,7 +245,7 @@ export function landingPage(target, history, qrPath, lastRun) {
 
     <div class="card" style="text-align:center;">
       <h2 style="text-align:left;margin-bottom:0.75rem;">Current Target</h2>
-      <img src="${qrPath}" alt="QR Code" class="qr-code"/>
+      <img src="${qrPath}" alt="QR Code" class="qr-code" id="qrThumb" title="Tap to enlarge"/>
       <p style="word-break:break-all;font-size:0.82rem;margin:0.6rem 0 0;">
         <a href="${target}" target="_blank" style="color:#0070f3;text-decoration:none;">${target}</a>
       </p>
@@ -247,7 +270,17 @@ export function landingPage(target, history, qrPath, lastRun) {
       </div>
     </details>
   </div>
+
+  <div id="qrOverlay">
+    <img src="${qrPath}" alt="QR Code (enlarged)"/>
+  </div>
+
   <script>
+    const qrThumb   = document.getElementById('qrThumb');
+    const qrOverlay = document.getElementById('qrOverlay');
+    qrThumb.addEventListener('click', () => qrOverlay.classList.add('open'));
+    qrOverlay.addEventListener('click', () => qrOverlay.classList.remove('open'));
+
     const syncForm = document.getElementById('syncForm');
     const syncBtn  = document.getElementById('syncBtn');
     const syncPw   = document.getElementById('syncPw');
