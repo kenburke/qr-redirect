@@ -167,8 +167,10 @@ export function landingPage(target, history, qrPath, lastRun) {
 
     <div class="section">
       <h2>Auto-Update</h2>
-      <input type="password" id="syncPw" placeholder="Admin password" style="width:100%;box-sizing:border-box;padding:0.5rem;margin-bottom:0.5rem;border:1px solid #ccc;border-radius:4px;"/>
-      <button id="syncBtn" class="btn secondary" style="width:100%;border:none;cursor:pointer;">Sync Now</button>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <input type="password" id="syncPw" placeholder="Admin password" style="flex:1;min-width:0;padding:0.5rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;"/>
+        <button id="syncBtn" title="Sync Now" style="flex:0 0 auto;width:2.25rem;height:2.25rem;border:none;border-radius:4px;background:#555;color:white;cursor:pointer;font-size:1.1rem;line-height:1;">⟳</button>
+      </div>
       <div id="syncMsg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
     </div>
   </div>
