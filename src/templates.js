@@ -161,18 +161,33 @@ export function landingPage(target, history, qrPath, lastRun) {
     cursor: zoom-in;
   }
   #qrOverlay {
-    display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.88);
+    background: rgba(15,15,25,0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 1000;
+    display: flex;
     align-items: center;
     justify-content: center;
     cursor: zoom-out;
     padding: 5vw;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
   }
   #qrOverlay.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease, visibility 0s;
+  }
+  #qrOverlay .qr-card {
+    transform: scale(0.85);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: default;
+  }
+  #qrOverlay.open .qr-card {
+    transform: scale(1);
   }
   #qrOverlay img {
     width: min(90vw, 90vh);
@@ -181,6 +196,33 @@ export function landingPage(target, history, qrPath, lastRun) {
     border-radius: 12px;
     padding: 1.25rem;
     box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    display: block;
+  }
+  #qrClose {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.65;
+    transition: opacity 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  }
+  #qrClose:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.25);
+    transform: scale(1.08);
+  }
+  #qrClose svg {
+    width: 1.1rem;
+    height: 1.1rem;
   }
   details {
     width: 100%;
@@ -272,14 +314,26 @@ export function landingPage(target, history, qrPath, lastRun) {
   </div>
 
   <div id="qrOverlay">
-    <img src="${qrPath}" alt="QR Code (enlarged)"/>
+    <button id="qrClose" title="Close" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <div class="qr-card">
+      <img src="${qrPath}" alt="QR Code (enlarged)"/>
+    </div>
   </div>
 
   <script>
     const qrThumb   = document.getElementById('qrThumb');
     const qrOverlay = document.getElementById('qrOverlay');
+    const qrClose   = document.getElementById('qrClose');
+    const qrCard    = document.querySelector('#qrOverlay .qr-card');
     qrThumb.addEventListener('click', () => qrOverlay.classList.add('open'));
     qrOverlay.addEventListener('click', () => qrOverlay.classList.remove('open'));
+    qrClose.addEventListener('click', () => qrOverlay.classList.remove('open'));
+    qrCard.addEventListener('click', e => e.stopPropagation());
 
     const syncForm = document.getElementById('syncForm');
     const syncBtn  = document.getElementById('syncBtn');
