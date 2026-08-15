@@ -1,3 +1,9 @@
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 function randomChallenge() {
   const ops = ['+', '*'];
   const op  = ops[Math.floor(Math.random() * ops.length)];
@@ -6,19 +12,26 @@ function randomChallenge() {
   return { a, b, op };
 }
 
-export function landingPage(target, history, qrPath) {
+export function landingPage(target, history, qrPath, lastRun) {
   // limit to last 10 entries
   const recent = history.slice(0, 10);
 
   // build history rows
-  const rows = recent.map(({url, ts}) => {
+  const rows = recent.map(({url, ts, source}) => {
     const time = new Date(ts).toLocaleString();
+    const tag = source === 'auto' ? ' <span style="color:#888;font-size:0.85em;">(auto)</span>' : '';
     return `
       <tr>
-        <td><a href="${url}" target="_blank">${url}</a></td>
+        <td><a href="${url}" target="_blank">${url}</a>${tag}</td>
         <td>${time}</td>
       </tr>`;
   }).join('');
+
+  const banner = (lastRun && !lastRun.success) ? `
+    <div class="banner">
+      ⚠ Auto-update issue: ${escapeHtml(lastRun.error || 'unknown error')}<br>
+      Last attempt: ${new Date(lastRun.ranAt).toLocaleString()}
+    </div>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Admin</title>
@@ -58,6 +71,15 @@ export function landingPage(target, history, qrPath) {
   }
   .btn.secondary {
     background: #555;
+  }
+  .banner {
+    background: #fdecea;
+    color: #c92a2a;
+    border: 1px solid #f5c2c2;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
   }
   .section {
     margin: 1.5rem 0;
@@ -114,6 +136,7 @@ export function landingPage(target, history, qrPath) {
 </head><body>
   <div class="container">
     <h1>Redirect Admin</h1>
+    ${banner}
 
     <a href="/admin/update" class="btn">Update Redirect</a>
     <a href="/admin/dash" class="btn secondary">View Dashboard</a>
@@ -139,7 +162,60 @@ export function landingPage(target, history, qrPath) {
         </div>
       </details>
     </div>
+
+    <div class="section">
+      <h2>Auto-Update</h2>
+      <input type="password" id="syncPw" placeholder="Admin password" style="width:100%;box-sizing:border-box;padding:0.5rem;margin-bottom:0.5rem;border:1px solid #ccc;border-radius:4px;"/>
+      <button id="syncBtn" class="btn secondary" style="width:100%;border:none;cursor:pointer;">Sync Now</button>
+      <div id="syncMsg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
+    </div>
   </div>
+  <script>
+    const syncBtn = document.getElementById('syncBtn');
+    const syncPw  = document.getElementById('syncPw');
+    const syncMsg = document.getElementById('syncMsg');
+
+    syncBtn.addEventListener('click', async () => {
+      syncBtn.disabled = true;
+      syncMsg.textContent = 'Starting…';
+      let res;
+      try {
+        res = await fetch('/admin/sync-schedule', {
+          method: 'POST',
+          headers: { 'X-Admin-Password': syncPw.value }
+        });
+      } catch (e) {
+        syncMsg.textContent = '❌ Request failed';
+        syncBtn.disabled = false;
+        return;
+      }
+      if (res.status === 401) {
+        syncMsg.textContent = '❌ Invalid password';
+        syncBtn.disabled = false;
+        return;
+      }
+      if (!res.ok) {
+        syncMsg.textContent = '❌ Failed to start sync';
+        syncBtn.disabled = false;
+        return;
+      }
+      poll();
+    });
+
+    function poll() {
+      const interval = setInterval(async () => {
+        const r = await fetch('/admin/sync-status');
+        const s = await r.json();
+        if (s.state === 'running') {
+          syncMsg.textContent = '⏳ ' + (s.currentStage || 'working…');
+        } else {
+          clearInterval(interval);
+          syncBtn.disabled = false;
+          syncMsg.textContent = '✅ Done — see the dashboard for details';
+        }
+      }, 1000);
+    }
+  </script>
 </body></html>`;
 }
 
@@ -239,7 +315,7 @@ export function updateForm() {
 </body></html>`;
 }
 
-export function dashboardPage(all) {
+export function dashboardPage(all, runs = []) {
   // Inject dummy June 19th if missing
   if (!all["2025-06-19"]) {
     all["2025-06-19"] = {
@@ -272,6 +348,28 @@ export function dashboardPage(all) {
   }
 
   const statsJson = JSON.stringify(stats);
+
+  // Auto-update (scrape) run history
+  const lastRun = runs[0];
+  const lastRunSummary = lastRun ? `
+    <p>
+      Last run: ${new Date(lastRun.ranAt).toLocaleString()} (${lastRun.trigger})<br>
+      Status: ${lastRun.success ? '✅ OK' : '❌ ' + escapeHtml(lastRun.error || 'error')}<br>
+      Next Saturday (${lastRun.nextCalendarSaturday}): ${lastRun.nextCalendarSaturdayCached ? '✅ cached' : '⚠ not cached yet'}
+    </p>` : '<p>No auto-update runs yet.</p>';
+
+  let scrapeRunRows = '';
+  for (const r of runs) {
+    scrapeRunRows += `
+      <tr>
+        <td>${new Date(r.ranAt).toLocaleString()}</td>
+        <td>${r.trigger}</td>
+        <td>${r.success ? '✅' : '❌ ' + escapeHtml(r.error || '')}</td>
+        <td>${r.entriesFound}</td>
+        <td>${r.newEntriesAdded}</td>
+        <td>${r.promoted ? '✅ &rarr; ' + escapeHtml(r.promotedTo || '') : '—'}</td>
+      </tr>`;
+  }
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Dashboard</title>
@@ -373,6 +471,19 @@ export function dashboardPage(all) {
     <div class="card">
       <h2>Attempts (Success vs. Failures)</h2>
       <canvas id="attemptChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Auto-Update Status</h2>
+      ${lastRunSummary}
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Trigger</th><th>Status</th><th>Found</th><th>Added</th><th>Promoted</th></tr>
+        </thead>
+        <tbody>
+          ${scrapeRunRows}
+        </tbody>
+      </table>
     </div>
 
     <div class="card">

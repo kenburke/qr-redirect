@@ -3,9 +3,11 @@ main = "src/index.js"
 compatibility_date = "2025-07-03"
 
 [vars]
-ADMIN_PASSWORD = "EUREKA"
 RATE_LIMIT     = "10"
 RATE_WINDOW    = "3600"
+
+[triggers]
+crons = ["0 15 * * *"]
 
 [[kv_namespaces]]
 binding = "REDIRECT_KV"

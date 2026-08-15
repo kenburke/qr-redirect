@@ -1,5 +1,6 @@
 import * as Analytics from './analytics.js';
 import * as Templates from './templates.js';
+import { runSync } from './scraper.js';
 
 export async function serveLanding() {
   // 1) fetch the current redirect target
@@ -12,9 +13,13 @@ export async function serveLanding() {
   // 3) point to the raw GitHub URL for your qr.png
   const qrUrl = 'https://raw.githubusercontent.com/kenburke/qr-redirect/main/qr.png';
 
-  // 4) render the template with target, history, and qrUrl
+  // 4) most recent auto-update run, for the failure banner
+  const rawRuns = await REDIRECT_KV.get('scrapeRuns');
+  const runs = rawRuns ? JSON.parse(rawRuns) : [];
+
+  // 5) render the template with target, history, qrUrl, and last scrape run
   return new Response(
-    Templates.landingPage(target, history, qrUrl),
+    Templates.landingPage(target, history, qrUrl, runs[0] || null),
     { headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
   );
 }
@@ -30,8 +35,32 @@ export async function serveStats() {
 export async function serveDashboard() {
   const raw   = await REDIRECT_KV.get('analytics');
   const stats = raw ? JSON.parse(raw) : {};
-  return new Response(Templates.dashboardPage(stats), {
+
+  const rawRuns = await REDIRECT_KV.get('scrapeRuns');
+  const runs = rawRuns ? JSON.parse(rawRuns) : [];
+
+  return new Response(Templates.dashboardPage(stats, runs), {
     headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+  });
+}
+
+export async function handleSyncSchedule(request, event) {
+  const pw = request.headers.get('X-Admin-Password') || '';
+  if (pw !== ADMIN_PASSWORD) {
+    return new Response('❌ Invalid password', { status: 401 });
+  }
+  event.waitUntil(runSync({ trigger: 'manual' }));
+  return new Response(JSON.stringify({ started: true }), {
+    status: 202,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+export async function handleSyncStatus() {
+  const raw = await REDIRECT_KV.get('scrapeStatus');
+  const status = raw ? JSON.parse(raw) : { state: 'idle', currentStage: null, startedAt: null };
+  return new Response(JSON.stringify(status), {
+    headers: { 'Content-Type': 'application/json' }
   });
 }
 
@@ -92,7 +121,7 @@ export async function handleUpdate(request) {
   // History
   const histRaw = await REDIRECT_KV.get('history');
   const histArr = histRaw ? JSON.parse(histRaw) : [];
-  histArr.unshift({ url: newUrl, ts: Date.now() });
+  histArr.unshift({ url: newUrl, ts: Date.now(), source: 'manual' });
   if (histArr.length > 10) histArr.splice(10);
   await REDIRECT_KV.put('history', JSON.stringify(histArr));
 
