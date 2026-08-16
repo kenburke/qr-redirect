@@ -526,7 +526,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
       <tr>
         <td>${formatPacific(r.ranAt)}</td>
         <td>${r.trigger}</td>
-        <td>${r.success ? '✅' : '❌ ' + escapeHtml(r.error || '')}</td>
+        <td title="${escapeHtml(r.error || '')}">${r.success ? '✅' : '❌ ' + escapeHtml(r.error || '')}</td>
         <td>${r.entriesFound}</td>
         <td>${r.newEntriesAdded}</td>
         <td>${r.promoted ? `<span title="${escapeHtml(r.promotedTo || '')}">✅</span>` : '—'}</td>
@@ -555,7 +555,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     return `
       <tr>
         <td style="white-space:nowrap;">${escapeHtml(dateLabel)}${badge}</td>
-        <td style="word-break:break-all;font-size:0.82rem;text-align:left;"><a href="${escapeHtml(url)}" target="_blank" style="color:#0070f3;text-decoration:none;">${escapeHtml(url)}</a></td>
+        <td style="white-space:normal;word-break:break-all;font-size:0.82rem;text-align:left;"><a href="${escapeHtml(url)}" target="_blank" style="color:#0070f3;text-decoration:none;">${escapeHtml(url)}</a></td>
       </tr>`;
   }).join('');
 
@@ -641,7 +641,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     font-size: 0.9rem;
     overflow: hidden;
     text-overflow: ellipsis;
-    word-break: break-word;
+    white-space: nowrap;
   }
   th {
     background: #f0f0f0;
@@ -707,8 +707,8 @@ export function dashboardPage(all, runs = [], schedule = {}) {
         <div class="scroll-table">
           <table>
             <colgroup>
-              <col style="width:26%"><col style="width:12%"><col style="width:28%">
-              <col style="width:10%"><col style="width:10%"><col style="width:14%">
+              <col style="width:23%"><col style="width:13%"><col style="width:24%">
+              <col style="width:13%"><col style="width:13%"><col style="width:14%">
             </colgroup>
             <thead>
               <tr><th>Time</th><th>Trigger</th><th>Status</th><th>Found</th><th>Added</th><th>Promoted</th></tr>
