@@ -39,7 +39,10 @@ export async function serveDashboard() {
   const rawRuns = await REDIRECT_KV.get('scrapeRuns');
   const runs = rawRuns ? JSON.parse(rawRuns) : [];
 
-  return new Response(Templates.dashboardPage(stats, runs), {
+  const rawSchedule = await REDIRECT_KV.get('schedule');
+  const schedule = rawSchedule ? JSON.parse(rawSchedule) : {};
+
+  return new Response(Templates.dashboardPage(stats, runs, schedule), {
     headers: { 'Content-Type': 'text/html; charset=UTF-8' }
   });
 }

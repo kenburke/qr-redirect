@@ -1,4 +1,4 @@
-import { formatPacific } from './dates.js';
+import { formatPacific, todayISO } from './dates.js';
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
@@ -486,16 +486,7 @@ export function updateForm() {
 </body></html>`;
 }
 
-export function dashboardPage(all, runs = []) {
-  // Inject dummy June 19th if missing
-  if (!all["2025-06-19"]) {
-    all["2025-06-19"] = {
-      success:   2,
-      redirects: 107,
-      failure: { captcha:1, password:1, rateLimit:1 }
-    };
-  }
-
+export function dashboardPage(all, runs = [], schedule = {}) {
   // Sort & cap to last 1,000 dates
   let dates = Object.keys(all).sort();
   if (dates.length > 1000) dates = dates.slice(-1000);
@@ -541,6 +532,32 @@ export function dashboardPage(all, runs = []) {
         <td>${r.promoted ? '✅ &rarr; ' + escapeHtml(r.promotedTo || '') : '—'}</td>
       </tr>`;
   }
+
+  // Upcoming cached links (schedule entries for today or later)
+  const today = todayISO();
+  const upcoming = Object.entries(schedule)
+    .filter(([d]) => d >= today)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  const upcomingRows = upcoming.map(([d, url], i) => {
+    const dateLabel = new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC'
+    });
+    const badge = i === 0
+      ? ' <span style="background:#0070f3;color:white;font-size:0.65rem;font-weight:600;padding:0.15rem 0.4rem;border-radius:3px;">NEXT</span>'
+      : '';
+    return `
+      <tr>
+        <td style="white-space:nowrap;">${escapeHtml(dateLabel)}${badge}</td>
+        <td style="word-break:break-all;font-size:0.82rem;text-align:left;"><a href="${escapeHtml(url)}" target="_blank" style="color:#0070f3;text-decoration:none;">${escapeHtml(url)}</a></td>
+      </tr>`;
+  }).join('');
+
+  const upcomingSection = upcoming.length ? `
+    <table>
+      <thead><tr><th>Date</th><th style="text-align:left;">Cached URL</th></tr></thead>
+      <tbody>${upcomingRows}</tbody>
+    </table>` : `<p style="color:#999;font-size:0.9rem;margin:0;">Nothing cached yet for upcoming Saturdays.</p>`;
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Redirect Dashboard</title>
@@ -610,11 +627,28 @@ export function dashboardPage(all, runs = []) {
   }
   th, td {
     border: 1px solid #ddd;
-    padding: 0.75rem;
+    padding: 0.6rem 0.75rem;
     text-align: center;
+    font-size: 0.9rem;
   }
-  th { background: #f0f0f0; }
+  th {
+    background: #f0f0f0;
+    position: sticky;
+    top: 0;
+  }
   tr:nth-child(even) { background: #fafafa; }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+  .scroll-table {
+    max-height: 280px;
+    overflow-y: auto;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head><body>
@@ -640,64 +674,88 @@ export function dashboardPage(all, runs = []) {
     </div>
 
     <div class="card">
-      <h2>Attempts (Success vs. Failures)</h2>
+      <h2>Manual Update Attempts (Success vs. Failures)</h2>
       <canvas id="attemptChart"></canvas>
     </div>
 
     <div class="card">
-      <h2>Auto-Update Status</h2>
-      ${lastRunSummary}
-      <table>
-        <thead>
-          <tr><th>Time</th><th>Trigger</th><th>Status</th><th>Found</th><th>Added</th><th>Promoted</th></tr>
-        </thead>
-        <tbody>
-          ${scrapeRunRows}
-        </tbody>
-      </table>
+      <h2>Upcoming Cached Links</h2>
+      ${upcomingSection}
     </div>
 
-    <div class="card">
-      <h2>Daily Summary</h2>
-      <table>
-        <thead>
-          <tr><th>Date</th><th>Success</th><th>Failures</th><th>Redirects</th></tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
+    <div class="two-col">
+      <div class="card">
+        <h2>Auto-Update Status</h2>
+        ${lastRunSummary}
+        <div class="scroll-table">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Trigger</th><th>Status</th><th>Found</th><th>Added</th><th>Promoted</th></tr>
+            </thead>
+            <tbody>
+              ${scrapeRunRows}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Daily Summary</h2>
+        <div class="scroll-table">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Success</th><th>Failures</th><th>Redirects</th></tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
     const stats = ${statsJson};
-    const labels = Object.keys(stats);
+    const dateKeys = Object.keys(stats).sort();
 
-    const redirectData = labels.map(d => stats[d].redirects || 0);
-    const successData  = labels.map(d => stats[d].success   || 0);
-    const captchaData  = labels.map(d => stats[d].failure.captcha || 0);
-    const pwdData      = labels.map(d => stats[d].failure.password || 0);
-    const rlData       = labels.map(d => stats[d].failure.rateLimit || 0);
+    // Real elapsed-time x-axis: days-since-epoch as a linear numeric value, so
+    // gaps between dates with no data are visually proportional instead of
+    // every bar/point being evenly spaced regardless of actual date gaps.
+    const toDay = d => Date.parse(d) / 86400000;
+    const dateTickFmt = v => new Date(v * 86400000).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', timeZone: 'UTC'
+    });
+
+    const point = fn => dateKeys.map(d => ({ x: toDay(d), y: fn(stats[d]) }));
+    const redirectPoints = point(s => s.redirects || 0);
+    const successPoints  = point(s => s.success || 0);
+    const captchaPoints  = point(s => s.failure.captcha || 0);
+    const pwdPoints      = point(s => s.failure.password || 0);
+    const rlPoints       = point(s => s.failure.rateLimit || 0);
 
     new Chart(
       document.getElementById('redirectChart').getContext('2d'),
       {
-        type: 'bar',
+        type: 'line',
         data: {
-          labels,
           datasets: [{
             label: 'Redirects',
-            data: redirectData,
-            backgroundColor: 'rgba(77,192,181,0.6)',
+            data: redirectPoints,
             borderColor: '#4dc0b5',
-            borderWidth: 1,
-            barPercentage: 0.8
+            backgroundColor: 'rgba(77,192,181,0.15)',
+            borderWidth: 2,
+            tension: 0.25,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: '#4dc0b5'
           }]
         },
         options: {
-          scales: { y: { beginAtZero: true }, x: { title: { display: true, text: 'Date' } } },
-          elements: { bar: { borderSkipped: false } }
+          scales: {
+            x: { type: 'linear', ticks: { callback: dateTickFmt }, title: { display: true, text: 'Date' } },
+            y: { beginAtZero: true }
+          }
         }
       }
     );
@@ -707,16 +765,18 @@ export function dashboardPage(all, runs = []) {
       {
         type: 'bar',
         data: {
-          labels,
           datasets: [
-            { label: 'CAPTCHA Failures', data: captchaData, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', stack: 'stack1', barPercentage: 0.8 },
-            { label: 'Password Failures', data: pwdData, backgroundColor: 'rgba(255,59,48,0.6)', borderColor: 'rgba(255,59,48,1)', stack: 'stack1', barPercentage: 0.8 },
-            { label: 'RateLimit Failures', data: rlData, backgroundColor: 'rgba(200,50,50,0.6)', borderColor: 'rgba(200,50,50,1)', stack: 'stack1', barPercentage: 0.8 },
-            { label: 'Successes', data: successData, backgroundColor: 'rgba(40,180,99,0.6)', borderColor: 'rgba(40,180,99,1)', stack: 'stack1', barPercentage: 0.8 }
+            { label: 'CAPTCHA Failures', data: captchaPoints, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', stack: 'stack1', maxBarThickness: 28 },
+            { label: 'Password Failures', data: pwdPoints, backgroundColor: 'rgba(255,59,48,0.6)', borderColor: 'rgba(255,59,48,1)', stack: 'stack1', maxBarThickness: 28 },
+            { label: 'RateLimit Failures', data: rlPoints, backgroundColor: 'rgba(200,50,50,0.6)', borderColor: 'rgba(200,50,50,1)', stack: 'stack1', maxBarThickness: 28 },
+            { label: 'Successes', data: successPoints, backgroundColor: 'rgba(40,180,99,0.6)', borderColor: 'rgba(40,180,99,1)', stack: 'stack1', maxBarThickness: 28 }
           ]
         },
         options: {
-          scales: { y: { beginAtZero: true, stacked: true }, x: { title: { display: true, text: 'Date' } } },
+          scales: {
+            x: { type: 'linear', stacked: true, ticks: { callback: dateTickFmt }, title: { display: true, text: 'Date' } },
+            y: { beginAtZero: true, stacked: true }
+          },
           elements: { bar: { borderSkipped: false } }
         }
       }
