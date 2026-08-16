@@ -517,7 +517,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     <p>
       Last run: ${formatPacific(lastRun.ranAt)} (${lastRun.trigger})<br>
       Status: ${lastRun.success ? '✅ OK' : '❌ ' + escapeHtml(lastRun.error || 'error')}<br>
-      Next Saturday (${lastRun.nextCalendarSaturday}): ${lastRun.nextCalendarSaturdayCached ? '✅ cached' : '⚠ not cached yet'}
+      ${lastRun.nextCalendarSaturday === todayISO() ? 'This Saturday' : 'Next Saturday'} (${lastRun.nextCalendarSaturday}): ${lastRun.nextCalendarSaturdayCached ? '✅ cached' : '⚠ not cached yet'}
     </p>` : '<p>No auto-update runs yet.</p>';
 
   let scrapeRunRows = '';
@@ -649,22 +649,27 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     top: 0;
   }
   tr:nth-child(even) { background: #fafafa; }
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    min-width: 0;
-  }
-  .two-col .card {
-    min-width: 0;
-  }
-  @media (max-width: 700px) {
-    .two-col { grid-template-columns: 1fr; }
-  }
   .scroll-table {
-    max-height: 280px;
+    max-height: 340px;
     overflow-y: auto;
     overflow-x: auto;
+  }
+  details summary {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+    padding: 0.4rem 0;
+    list-style: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 0.4rem;
+    transition: transform 0.15s ease;
+  }
+  details[open] summary::before {
+    transform: rotate(90deg);
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -700,11 +705,12 @@ export function dashboardPage(all, runs = [], schedule = {}) {
       ${upcomingSection}
     </div>
 
-    <div class="two-col">
-      <div class="card">
-        <h2>Auto-Update Status</h2>
-        ${lastRunSummary}
-        <div class="scroll-table">
+    <div class="card">
+      <h2>Auto-Update Status</h2>
+      ${lastRunSummary}
+      <details open>
+        <summary>Run history (${runs.length})</summary>
+        <div class="scroll-table" style="margin-top:0.5rem;">
           <table>
             <colgroup>
               <col style="width:23%"><col style="width:13%"><col style="width:24%">
@@ -718,11 +724,14 @@ export function dashboardPage(all, runs = [], schedule = {}) {
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
+    </div>
 
-      <div class="card">
-        <h2>Daily Summary</h2>
-        <div class="scroll-table">
+    <div class="card">
+      <h2>Daily Redirect &amp; Update Summary</h2>
+      <details open>
+        <summary>Daily breakdown (${dates.length} days)</summary>
+        <div class="scroll-table" style="margin-top:0.5rem;">
           <table>
             <thead>
               <tr><th>Date</th><th>Success</th><th>Failures</th><th>Redirects</th></tr>
@@ -732,7 +741,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
     </div>
   </div>
 
