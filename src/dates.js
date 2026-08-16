@@ -1,5 +1,13 @@
 export function todayISO(base = new Date()) {
-  return base.toISOString().slice(0, 10);
+  // Pacific calendar day, not UTC — the event and its volunteers are in
+  // Pacific time, and UTC can be up to 8 hours ahead of the Pacific date
+  // (e.g. 5pm PDT Saturday is already past midnight UTC on Sunday).
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(base);
+  const get = type => parts.find(p => p.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
 export function nextCalendarSaturday(fromISO) {
