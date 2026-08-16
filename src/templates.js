@@ -529,7 +529,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
         <td>${r.success ? '✅' : '❌ ' + escapeHtml(r.error || '')}</td>
         <td>${r.entriesFound}</td>
         <td>${r.newEntriesAdded}</td>
-        <td>${r.promoted ? '✅ &rarr; ' + escapeHtml(r.promotedTo || '') : '—'}</td>
+        <td>${r.promoted ? `<span title="${escapeHtml(r.promotedTo || '')}">✅</span>` : '—'}</td>
       </tr>`;
   }
 
@@ -539,13 +539,19 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     .filter(([d]) => d >= today)
     .sort(([a], [b]) => a.localeCompare(b));
 
+  const currentIndex = upcoming.findIndex(([d]) => d === today);
+  const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+
   const upcomingRows = upcoming.map(([d, url], i) => {
     const dateLabel = new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC'
     });
-    const badge = i === 0
-      ? ' <span style="background:#0070f3;color:white;font-size:0.65rem;font-weight:600;padding:0.15rem 0.4rem;border-radius:3px;">NEXT</span>'
-      : '';
+    let badge = '';
+    if (i === currentIndex) {
+      badge = ' <span style="background:#2f9e44;color:white;font-size:0.65rem;font-weight:600;padding:0.15rem 0.4rem;border-radius:3px;">CURRENT</span>';
+    } else if (i === nextIndex) {
+      badge = ' <span style="background:#0070f3;color:white;font-size:0.65rem;font-weight:600;padding:0.15rem 0.4rem;border-radius:3px;">NEXT</span>';
+    }
     return `
       <tr>
         <td style="white-space:nowrap;">${escapeHtml(dateLabel)}${badge}</td>
@@ -555,6 +561,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
 
   const upcomingSection = upcoming.length ? `
     <table>
+      <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
       <thead><tr><th>Date</th><th style="text-align:left;">Cached URL</th></tr></thead>
       <tbody>${upcomingRows}</tbody>
     </table>` : `<p style="color:#999;font-size:0.9rem;margin:0;">Nothing cached yet for upcoming Saturdays.</p>`;
@@ -623,6 +630,8 @@ export function dashboardPage(all, runs = [], schedule = {}) {
   canvas { width: 100% !important; height: auto !important; }
   table {
     width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
   }
   th, td {
@@ -630,6 +639,9 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     padding: 0.6rem 0.75rem;
     text-align: center;
     font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
   }
   th {
     background: #f0f0f0;
@@ -641,6 +653,10 @@ export function dashboardPage(all, runs = [], schedule = {}) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    min-width: 0;
+  }
+  .two-col .card {
+    min-width: 0;
   }
   @media (max-width: 700px) {
     .two-col { grid-template-columns: 1fr; }
@@ -648,6 +664,7 @@ export function dashboardPage(all, runs = [], schedule = {}) {
   .scroll-table {
     max-height: 280px;
     overflow-y: auto;
+    overflow-x: auto;
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -689,6 +706,10 @@ export function dashboardPage(all, runs = [], schedule = {}) {
         ${lastRunSummary}
         <div class="scroll-table">
           <table>
+            <colgroup>
+              <col style="width:26%"><col style="width:12%"><col style="width:28%">
+              <col style="width:10%"><col style="width:10%"><col style="width:14%">
+            </colgroup>
             <thead>
               <tr><th>Time</th><th>Trigger</th><th>Status</th><th>Found</th><th>Added</th><th>Promoted</th></tr>
             </thead>
@@ -729,10 +750,17 @@ export function dashboardPage(all, runs = [], schedule = {}) {
 
     const point = fn => dateKeys.map(d => ({ x: toDay(d), y: fn(stats[d]) }));
     const redirectPoints = point(s => s.redirects || 0);
-    const successPoints  = point(s => s.success || 0);
-    const captchaPoints  = point(s => s.failure.captcha || 0);
-    const pwdPoints      = point(s => s.failure.password || 0);
-    const rlPoints       = point(s => s.failure.rateLimit || 0);
+
+    // The attempts chart uses evenly-spaced categories, not real elapsed
+    // time — manual updates are rare, so on a proportional-time axis the
+    // bars end up as thin isolated spikes across a mostly-empty chart. A
+    // line (above) reads fine across gaps; stacked bars don't.
+    const dateLabels  = dateKeys.map(d => dateTickFmt(toDay(d)));
+    const plain = fn => dateKeys.map(d => fn(stats[d]));
+    const successData = plain(s => s.success || 0);
+    const captchaData  = plain(s => s.failure.captcha || 0);
+    const pwdData      = plain(s => s.failure.password || 0);
+    const rlData       = plain(s => s.failure.rateLimit || 0);
 
     new Chart(
       document.getElementById('redirectChart').getContext('2d'),
@@ -765,16 +793,17 @@ export function dashboardPage(all, runs = [], schedule = {}) {
       {
         type: 'bar',
         data: {
+          labels: dateLabels,
           datasets: [
-            { label: 'CAPTCHA Failures', data: captchaPoints, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', stack: 'stack1', maxBarThickness: 28 },
-            { label: 'Password Failures', data: pwdPoints, backgroundColor: 'rgba(255,59,48,0.6)', borderColor: 'rgba(255,59,48,1)', stack: 'stack1', maxBarThickness: 28 },
-            { label: 'RateLimit Failures', data: rlPoints, backgroundColor: 'rgba(200,50,50,0.6)', borderColor: 'rgba(200,50,50,1)', stack: 'stack1', maxBarThickness: 28 },
-            { label: 'Successes', data: successPoints, backgroundColor: 'rgba(40,180,99,0.6)', borderColor: 'rgba(40,180,99,1)', stack: 'stack1', maxBarThickness: 28 }
+            { label: 'CAPTCHA Failures', data: captchaData, backgroundColor: 'rgba(255,99,132,0.6)', borderColor: 'rgba(255,99,132,1)', stack: 'stack1', barPercentage: 0.8 },
+            { label: 'Password Failures', data: pwdData, backgroundColor: 'rgba(255,59,48,0.6)', borderColor: 'rgba(255,59,48,1)', stack: 'stack1', barPercentage: 0.8 },
+            { label: 'RateLimit Failures', data: rlData, backgroundColor: 'rgba(200,50,50,0.6)', borderColor: 'rgba(200,50,50,1)', stack: 'stack1', barPercentage: 0.8 },
+            { label: 'Successes', data: successData, backgroundColor: 'rgba(40,180,99,0.6)', borderColor: 'rgba(40,180,99,1)', stack: 'stack1', barPercentage: 0.8 }
           ]
         },
         options: {
           scales: {
-            x: { type: 'linear', stacked: true, ticks: { callback: dateTickFmt }, title: { display: true, text: 'Date' } },
+            x: { stacked: true, ticks: { autoSkip: true, maxRotation: 0 }, title: { display: true, text: 'Date' } },
             y: { beginAtZero: true, stacked: true }
           },
           elements: { bar: { borderSkipped: false } }
